@@ -1,26 +1,15 @@
-from fastapi import FastAPI
+from datetime import datetime, timezone
 
-from app.api.v1.router import router as api_v1_router
-from app.core.errors import register_exception_handlers
-from app.core.request_id import register_request_id_middleware
-
-
-app = FastAPI(title="MemberWiki API", version="0.1.0")
-register_request_id_middleware(app)
-register_exception_handlers(app)
-app.include_router(api_v1_router)
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.api.v1.router import router as api_v1_router
 from app.core.config import settings
+from app.core.errors import register_exception_handlers
+from app.core.request_id import register_request_id_middleware
 from app.services.errors import ServiceError
 
-app = FastAPI(title="MemberWiki API", version="0.1.0")
-api_router = APIRouter(prefix=settings.api_v1_prefix)
 
-
-@app.exception_handler(ServiceError)
 def handle_service_error(_: Request, exc: ServiceError) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
@@ -28,7 +17,6 @@ def handle_service_error(_: Request, exc: ServiceError) -> JSONResponse:
     )
 
 
-@api_router.get("/health", tags=["System"])
 def health() -> dict[str, str]:
     return {
         "status": "ok",
@@ -36,5 +24,17 @@ def health() -> dict[str, str]:
     }
 
 
-api_router.include_router(api_v1_router)
-app.include_router(api_router)
+def create_app() -> FastAPI:
+    app = FastAPI(title="MemberWiki API", version="0.1.0")
+    register_request_id_middleware(app)
+    register_exception_handlers(app)
+    app.add_exception_handler(ServiceError, handle_service_error)
+
+    api_router = APIRouter(prefix=settings.api_v1_prefix)
+    api_router.add_api_route("/health", health, methods=["GET"], tags=["System"])
+    api_router.include_router(api_v1_router)
+    app.include_router(api_router)
+    return app
+
+
+app = create_app()
