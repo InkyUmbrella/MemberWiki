@@ -1,18 +1,13 @@
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter
 from fastapi.testclient import TestClient
 
-from app.api.v1.router import router as api_v1_router
 from app.core.errors import AppError
-from app.core.errors import register_exception_handlers
 from app.core.request_id import REQUEST_ID_HEADER
-from app.core.request_id import register_request_id_middleware
+from app.main import create_app
 
 
 def create_test_client(extra_router: APIRouter | None = None) -> TestClient:
-    test_app = FastAPI()
-    register_request_id_middleware(test_app)
-    register_exception_handlers(test_app)
-    test_app.include_router(api_v1_router)
+    test_app = create_app()
     if extra_router is not None:
         test_app.include_router(extra_router)
     return TestClient(test_app)
