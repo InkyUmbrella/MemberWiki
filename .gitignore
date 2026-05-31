@@ -2,9 +2,6 @@
 *.patch
 *.diff
 
-### Example user template template
-### Example user template
-
 # IntelliJ project files
 .idea
 *.iml
@@ -12,10 +9,17 @@ out
 gen
 .vs
 
+# Local Envs
 .venv
 .env
 __pycache__/
+node_modules/
 *.pyc
 backend/data/*.db
 
+# Agent
+graphify-out/
+.planning/
+
+# WTF
 alembic.ini
