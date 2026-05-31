@@ -6,26 +6,31 @@ import api from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 export default function Profile() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [bio, setBio] = React.useState<string>("");
-  const [bioVisibility, setBioVisibility] = React.useState<"private" | "public">("private");
   const [showConfirm, setShowConfirm] = React.useState(false);
   const [showExport, setShowExport] = React.useState(false);
   const [exportFilename, setExportFilename] = React.useState("个人简介");
   const [saving, setSaving] = React.useState(false);
+  const [loadingDraft, setLoadingDraft] = React.useState(true);
 
   React.useEffect(() => {
     if (!user) return;
-    api.get("/user/bio").then(({ data }) => {
-      if (data.bio) setBio(data.bio);
-      if (data.bioVisibility) setBioVisibility(data.bioVisibility);
-    }).catch(() => {});
+    api.get("/profiles/me/draft")
+      .then(({ data }) => setBio(data.bio ?? ""))
+      .catch(() => {})
+      .finally(() => setLoadingDraft(false));
   }, [user]);
 
   async function handleSave() {
     setSaving(true);
     try {
-      await api.post("/user/profile-bio", { bio, bioVisibility });
+      await api.put("/profiles/me/draft", {
+        bio,
+        experiences: [],
+        awards: [],
+        proof_file_ids: [],
+      });
     } catch {
       // 可加错误提示
     } finally {
@@ -47,28 +52,21 @@ export default function Profile() {
     setShowExport(false);
   }
 
-  if (loading) return <div className="p-6 text-center text-muted-foreground">加载中...</div>;
-  if (!user) return <div className="p-6 text-center text-muted-foreground">请先登录</div>;
+  if (authLoading || loadingDraft) {
+    return <div className="p-6 text-center text-muted-foreground">加载中...</div>;
+  }
+  if (!user) {
+    return <div className="p-6 text-center text-muted-foreground">请先登录</div>;
+  }
 
   return (
     <div className="p-6 bg-white dark:bg-zinc-900 rounded-lg shadow-sm">
       <h2 className="text-2xl font-bold mb-4">我的履历</h2>
       <section>
-        <div className="mb-3 flex items-center gap-4">
-          <label className="font-normal text-sm">是否仅自己可见：</label>
-          <select
-            value={bioVisibility}
-            onChange={e => setBioVisibility(e.target.value as "private" | "public")}
-            className="border rounded px-2 py-1 text-sm"
-          >
-            <option value="private">仅自己可见</option>
-            <option value="public">所有人可见</option>
-          </select>
-        </div>
         <MarkdownEditor
           value={bio}
           onChange={setBio}
-          placeholder="请输入个人简介，支持Markdown语法"
+          placeholder="请输入个人简介，支持 Markdown 语法"
           preview={true}
           theme="light"
         />

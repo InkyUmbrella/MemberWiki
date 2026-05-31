@@ -1,9 +1,22 @@
 import { Outlet, Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth"
+import { useState } from "react"
 
 export default function MainLayout() {
   const { user, login, logout } = useAuth()
+  const [account, setAccount] = useState("")
+  const [password, setPassword] = useState("")
+
+  async function handleLogin() {
+    try {
+      await login(account, password)
+      setAccount("")
+      setPassword("")
+    } catch {
+      alert("登录失败，请检查账号和密码")
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -22,11 +35,28 @@ export default function MainLayout() {
               <Link to="/profile">我的履历</Link>
             </Button>
             {user ? (
-              <Button variant="outline" onClick={logout}>
-                {user.username}，退出
-              </Button>
+              <div className="inline-flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">{user.name}</span>
+                <Button variant="outline" onClick={logout}>退出</Button>
+              </div>
             ) : (
-              <Button onClick={login}>登录</Button>
+              <div className="inline-flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="账号"
+                  value={account}
+                  onChange={e => setAccount(e.target.value)}
+                  className="w-28 rounded border px-2 py-1 text-sm"
+                />
+                <input
+                  type="password"
+                  placeholder="密码"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-28 rounded border px-2 py-1 text-sm"
+                />
+                <Button onClick={handleLogin}>登录</Button>
+              </div>
             )}
           </nav>
         </div>
