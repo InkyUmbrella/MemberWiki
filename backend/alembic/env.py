@@ -12,6 +12,15 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from app.db.base import Base  # noqa: E402
+from app.models.achievement import Achievement  # noqa: E402,F401
+from app.models.media_asset import MediaAsset  # noqa: E402,F401
+from app.models.profile import Profile  # noqa: E402,F401
+from app.models.profile_draft import ProfileDraft  # noqa: E402,F401
+from app.models.profile_draft_file import ProfileDraftFile  # noqa: E402,F401
+from app.models.refresh_token import RefreshToken  # noqa: E402,F401
+from app.models.review_request import ReviewRequest  # noqa: E402,F401
+from app.models.user import User  # noqa: E402,F401
+from app.models.verification_code import VerificationCode  # noqa: E402,F401
 
 config = context.config
 
