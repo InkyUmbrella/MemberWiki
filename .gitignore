@@ -13,7 +13,7 @@ gen
 .cache/
 tmp/
 .pytest_cache/
-.ruff_caache/
+.ruff_cache/
 __pycache__/
 node_modules/
 *.pyc
