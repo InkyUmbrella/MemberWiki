@@ -10,7 +10,7 @@ export function installDeps(python: ReturnType<typeof buildPythonCommand>) {
     stdio: "inherit",
   });
   if (result.status !== 0) {
-    throw new Error(`pip install exited with code ${result.status}`);
+    throw new Error(`pip install 失败 (exit code ${result.status}), 请检查 requirements.txt 与网络`);
   }
 }
 

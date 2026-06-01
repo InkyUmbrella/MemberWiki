@@ -15,8 +15,8 @@ let count = 0;
 for (const path of TO_REMOVE) {
   if (existsSync(path)) {
     rmSync(path, { recursive: true, force: true });
-    console.log(`  🗑️  ${path}`);
+    console.log(`  ${path}`);
     count++;
   }
 }
-console.log(`✅ 已清除 ${count} 个文件/目录 (可重新运行 bun setup)`);
+console.log(`已清除 ${count} 个文件/目录 (可重新运行 bun setup)`);

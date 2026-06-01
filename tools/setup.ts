@@ -62,6 +62,7 @@ async function main() {
   console.log("   bun run dev     启动前后端");
   console.log("   bun run test    运行测试");
   console.log("   bun run update  更新依赖+迁移");
+  console.log("   bun run help    查看所有命令");
 }
 
 main().catch((e) => {

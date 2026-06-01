@@ -5,10 +5,8 @@ export type TestMode = "test" | "cov";
 
 export type TestTarget = {
   path?: string;
-  coverage?: string;
 };
 
-// 统一维护测试目标，避免为每个模块手写一套命令分支
 export const TEST_TARGETS: Record<string, TestTarget> = {
   all: {},
 };

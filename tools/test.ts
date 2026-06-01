@@ -4,7 +4,7 @@ import { buildPytestArgs, parsePytestTask, TEST_TARGETS } from "./lib/pytest";
 
 const parsed = parsePytestTask(process.argv[2]);
 if (!parsed) {
-  console.error("用法: bun run tools/test.ts <test|test:all|cov|cov:all>");
+  console.error("用法: bun run test");
   process.exit(1);
 }
 
