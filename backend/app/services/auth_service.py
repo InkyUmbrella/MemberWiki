@@ -10,7 +10,14 @@ from app.models.user import User
 from app.schemas.auth import AuthTokenResponse
 from app.schemas.user import UserResponse
 from app.services.errors import ConflictError, UnauthorizedError, ValidationError
-from app.services.security import hash_password, hash_secret, make_token, needs_password_upgrade, verify_password
+from app.services.security import (
+    create_access_token,
+    create_refresh_token,
+    hash_password,
+    hash_secret,
+    needs_password_upgrade,
+    verify_password,
+)
 from app.services.time import utcnow
 
 
@@ -78,8 +85,8 @@ def register_user(
     )
     db.add(profile)
 
-    access_token = make_token()
-    refresh_token = make_token()
+    access_token = create_access_token(user.id, user.role)
+    refresh_token = create_refresh_token()
     db.add(
         RefreshToken(
             user_id=user.id,
@@ -110,8 +117,8 @@ def login_user(db: Session, *, account: str, password: str) -> AuthTokenResponse
         raise ValidationError("user is disabled")
 
     now = utcnow()
-    access_token = make_token()
-    refresh_token = make_token()
+    access_token = create_access_token(user.id, user.role)
+    refresh_token = create_refresh_token()
     db.add(
         RefreshToken(
             user_id=user.id,

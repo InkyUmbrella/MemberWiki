@@ -25,6 +25,7 @@ python-dotenv==1.2.2
 python-multipart==0.0.20
 PyYAML==6.0.3
 passlib[argon2]==1.7.4
+PyJWT==2.10.1
 redis==5.2.1
 slowapi==0.1.9
 SQLAlchemy==2.0.49
