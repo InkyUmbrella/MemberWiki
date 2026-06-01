@@ -10,7 +10,7 @@ from app.models.user import User
 from app.schemas.auth import AuthTokenResponse
 from app.schemas.user import UserResponse
 from app.services.errors import ConflictError, UnauthorizedError, ValidationError
-from app.services.security import hash_password, hash_secret, make_token, verify_password
+from app.services.security import hash_password, hash_secret, make_token, needs_password_upgrade, verify_password
 from app.services.time import utcnow
 
 
@@ -104,6 +104,8 @@ def login_user(db: Session, *, account: str, password: str) -> AuthTokenResponse
     user = db.scalar(select(User).where(or_(User.email == account, User.phone == account)))
     if user is None or not verify_password(password, user.password_hash):
         raise UnauthorizedError("invalid account or password")
+    if needs_password_upgrade(user.password_hash):
+        user.password_hash = hash_password(password)
     if user.status != UserStatus.ACTIVE.value:
         raise ValidationError("user is disabled")
 
