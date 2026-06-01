@@ -1,0 +1,15 @@
+{
+  "name": "backend",
+  "private": true,
+  "scripts": {
+    "dev": "uvicorn main:app --reload",
+    "pytest": "bun run ../tools/test.ts test",
+    "lint": "bun run ../tools/lint.ts",
+    "typecheck": "bun run ../tools/typecheck.ts",
+    "migrate": "bun run ../tools/db.ts migrate",
+    "deps": "bun run ../tools/install.ts"
+  },
+  "devDependencies": {
+    "pyright": "^1.1.400"
+  }
+}

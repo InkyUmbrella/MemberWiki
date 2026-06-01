@@ -1,0 +1,21 @@
+{
+  "name": "memberwiki",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "setup": "bun run tools/setup.ts",
+    "dev": "concurrently -n fe,be -c cyan,green \"bun --cwd frontend dev\" \"bun --cwd backend dev\"",
+    "test": "bun run tools/test.ts test",
+    "lint": "bun --cwd frontend lint; bun run tools/lint.ts",
+    "typecheck": "bun --cwd frontend typecheck; bun run tools/typecheck.ts",
+    "db:reset": "bun run tools/db.ts reset",
+    "clean": "bun run tools/clean.ts",
+    "install:all": "bun run tools/install.ts && bun install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
