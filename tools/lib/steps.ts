@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { Command, unmaskedEnv, runCheck } from "./python";
+import { BACKEND_DIR } from "./root";
 import { fail } from "./fail";
 import { installDeps } from "../install";
 
@@ -16,7 +17,7 @@ export function updateDepsAndMigrate(python: Command, {
 
   if (updateBun) {
     console.log("更新 bun 依赖...");
-    if (!runCheck("bun", ["install"], { stdio: "inherit", shell: true as any })) {
+    if (!runCheck("bun", ["install"], { shell: true })) {
       fail("bun install 失败");
     }
   }
@@ -24,7 +25,7 @@ export function updateDepsAndMigrate(python: Command, {
   if (runMigrations) {
     console.log("运行数据库迁移...");
     const result = spawnSync(python.command, [...python.args, "-m", "alembic", "upgrade", "head"], {
-      stdio: "inherit", cwd: "backend", env: unmaskedEnv(),
+      cwd: BACKEND_DIR, env: unmaskedEnv(), stdio: "inherit",
     });
     if (result.status !== 0) fail("数据库迁移失败", result.status ?? 1);
   }

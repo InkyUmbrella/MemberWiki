@@ -1,4 +1,5 @@
 import { buildPythonCommand, runCheck, unmaskedEnv } from "./lib/python";
+import { BACKEND_DIR } from "./lib/root";
 import { fail } from "./lib/fail";
 import { installDeps } from "./install";
 
@@ -18,7 +19,7 @@ if (!runCheck("bun", ["install"], { shell: true })) {
 
 console.log("运行数据库迁移...");
 if (!runCheck(python.command, [...python.args, "-m", "alembic", "upgrade", "head"], {
-  cwd: "backend", env: unmaskedEnv(),
+  cwd: BACKEND_DIR, env: unmaskedEnv(),
 })) {
   fail("数据库迁移失败");
 }
