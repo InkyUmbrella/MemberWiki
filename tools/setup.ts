@@ -1,8 +1,7 @@
 import { existsSync, copyFileSync, mkdirSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { buildPythonCommand, hasManagedEnvironment } from "./lib/python";
 import { askForConfirmation } from "./lib/prompt";
-import { installDeps } from "./install";
+import { updateDepsAndMigrate } from "./lib/steps";
 
 const TEMPLATES = [
   { src: ".env.example", dest: ".env" },
@@ -34,29 +33,8 @@ async function main() {
     console.log(`  ${dataDir}/`);
   }
 
-  console.log("\n安装 Python 依赖...");
-  try {
-    installDeps(python);
-  } catch (e) {
-    console.error("pip install 失败:", e instanceof Error ? e.message : e);
-    process.exit(1);
-  }
-
-  console.log("安装 bun 依赖...");
-  const bunResult = spawnSync("bun", ["install"], { stdio: "inherit", shell: true });
-  if (bunResult.status !== 0) {
-    console.error("bun install 失败");
-    process.exit(bunResult.status ?? 1);
-  }
-
-  console.log("运行数据库迁移...");
-  const alembicResult = spawnSync(python.command, [...python.args, "-m", "alembic", "upgrade", "head"], {
-    stdio: "inherit", cwd: "backend", env: { ...process.env, DATABASE_URL: "" },
-  });
-  if (alembicResult.status !== 0) {
-    console.error("数据库迁移失败");
-    process.exit(alembicResult.status ?? 1);
-  }
+  console.log("");
+  updateDepsAndMigrate(python);
 
   console.log("\nMemberWiki 开发环境就绪！");
   console.log("   bun run dev     启动前后端");

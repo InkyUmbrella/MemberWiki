@@ -47,15 +47,14 @@ export function buildPytestArgs(target: TestTarget, mode: TestMode, extraArgs: s
   return args;
 }
 
-export function parsePytestTask(rawTask: string | undefined): { mode: TestMode; targetKey: string } | null {
+export function parsePytestTask(rawTask?: string): { mode: TestMode; targetKey: string } {
   if (!rawTask) {
-    return null;
+    return { mode: "test", targetKey: "all" };
   }
 
-  // 任务命名统一为 mode[:target]，例如 test:conf、cov:log
   const [mode, targetKey = "all"] = rawTask.split(":");
   if ((mode !== "test" && mode !== "cov") || !(targetKey in TEST_TARGETS)) {
-    return null;
+    return { mode: "test", targetKey: "all" };
   }
 
   return { mode, targetKey };

@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { askForConfirmation } from "./lib/prompt";
 import { buildPythonCommand, hasManagedEnvironment } from "./lib/python";
 
@@ -26,8 +27,6 @@ async function main(): Promise<void> {
 
   installDeps(python);
 }
-
-import { fileURLToPath } from "node:url";
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
