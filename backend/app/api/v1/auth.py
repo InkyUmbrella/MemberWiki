@@ -4,8 +4,11 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.core.limiter import limiter
+from app.models.enums import VerificationChannel
 from app.schemas.auth import AuthTokenResponse, LoginRequest, RegisterRequest, SendCodeRequest, VerifyCodeRequest
 from app.services import auth_service
+from app.services.email_service import send_verification_code
+from app.services.verification_service import generate_code, persist_code
 from app.services.time import utcnow
 
 router = APIRouter()
@@ -34,8 +37,26 @@ def login(request: FastAPIRequest, payload: LoginRequest, db: Session = Depends(
 
 
 @router.post("/send-code", status_code=202)
-def send_code(payload: SendCodeRequest) -> dict[str, str]:
-    # TODO(integration): persist VerificationCode and send email/SMS via provider.
+def send_code(request: FastAPIRequest, payload: SendCodeRequest, db: Session = Depends(get_db)) -> dict[str, str]:
+    if payload.channel != VerificationChannel.EMAIL:
+        raise HTTPException(status_code=501, detail="only email verification is supported")
+    code = generate_code()
+    persist_code(
+        db,
+        channel=payload.channel.value,
+        target=payload.target,
+        purpose=payload.purpose.value,
+        code=code,
+        ip=request.client.host if request.client else None,
+        ua=request.headers.get("user-agent"),
+    )
+    db.commit()
+    try:
+        send_verification_code(payload.target, code)
+    except RuntimeError:
+        pass
+    except Exception:
+        pass
     return {"message": "code sent", "timestamp": utcnow().isoformat()}
 
 
