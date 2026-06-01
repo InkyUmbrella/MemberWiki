@@ -1,7 +1,12 @@
 from sqlalchemy.orm import Session
 
 from app.models.profile import Profile
-from app.services.profile_service import approve_review, get_public_profile, save_profile_draft, submit_review
+from app.services.profile_service import (
+    approve_review,
+    get_public_profile,
+    save_profile_draft,
+    submit_review,
+)
 from tests.helpers.factories import draft_payload, register_admin, register_member
 
 

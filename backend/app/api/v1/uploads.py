@@ -5,7 +5,11 @@ from app.api.v1.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.upload import UploadedFile
-from app.services.upload_service import create_media_asset, soft_delete_media_asset, uploaded_file_schema
+from app.services.upload_service import (
+    create_media_asset,
+    soft_delete_media_asset,
+    uploaded_file_schema,
+)
 
 router = APIRouter()
 

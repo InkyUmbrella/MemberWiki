@@ -1,5 +1,11 @@
 """Pydantic schema package."""
-from app.schemas.auth import AuthTokenResponse, LoginRequest, RegisterRequest, SendCodeRequest, VerifyCodeRequest
+from app.schemas.auth import (
+    AuthTokenResponse,
+    LoginRequest,
+    RegisterRequest,
+    SendCodeRequest,
+    VerifyCodeRequest,
+)
 from app.schemas.common import PaginatedResponse
 from app.schemas.profile import (
     AwardItem,

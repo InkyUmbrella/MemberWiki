@@ -22,7 +22,12 @@ from app.schemas.review import ReviewTask
 from app.schemas.upload import UploadedFile
 from app.services.auth_service import user_to_schema
 from app.services.errors import ConflictError, ForbiddenError, NotFoundError, ValidationError
-from app.services.serializers import file_url_from_path, parse_date, parse_draft_content, serialize_draft_content
+from app.services.serializers import (
+    file_url_from_path,
+    parse_date,
+    parse_draft_content,
+    serialize_draft_content,
+)
 from app.services.time import utcnow
 
 

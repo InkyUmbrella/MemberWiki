@@ -2,14 +2,21 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Request as FastAPIRequest
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
 from app.core.limiter import limiter
+from app.db.session import get_db
 from app.models.enums import VerificationChannel
-from app.schemas.auth import AuthTokenResponse, LoginRequest, RefreshRequest, RegisterRequest, SendCodeRequest, VerifyCodeRequest
+from app.schemas.auth import (
+    AuthTokenResponse,
+    LoginRequest,
+    RefreshRequest,
+    RegisterRequest,
+    SendCodeRequest,
+    VerifyCodeRequest,
+)
 from app.services import auth_service
 from app.services.email_service import send_verification_code
-from app.services.verification_service import generate_code, persist_code, verify_and_consume
 from app.services.time import utcnow
+from app.services.verification_service import generate_code, persist_code, verify_and_consume
 
 router = APIRouter()
 
