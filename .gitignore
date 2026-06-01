@@ -9,6 +9,10 @@ out
 gen
 .vs
 
+# Cache
+.cache/
+tmp/
+
 # Local Envs
 .venv
 .env
@@ -18,7 +22,6 @@ node_modules/
 backend/data/*.db
 
 # Agent
-.cache/
 graphify-out/
 .planning/
 
