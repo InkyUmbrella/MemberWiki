@@ -42,12 +42,13 @@ async function main() {
 
   console.log("🗄️  运行数据库迁移...");
   spawnSync(python.command, [...python.args, "-m", "alembic", "upgrade", "head"], {
-    stdio: "inherit", cwd: "backend",
+    stdio: "inherit", cwd: "backend", env: { ...process.env, DATABASE_URL: "" },
   });
 
   console.log("\n✅ MemberWiki 开发环境就绪！");
-  console.log("   bun dev       启动前后端");
-  console.log("   bun test      运行测试");
+  console.log("   bun dev         启动前后端");
+  console.log("   bun run test    运行测试");
+  console.log("   bun run update  更新依赖+迁移");
 }
 
 main().catch((e) => {
