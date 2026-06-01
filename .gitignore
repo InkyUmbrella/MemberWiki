@@ -12,13 +12,15 @@ gen
 # Cache
 .cache/
 tmp/
+.pytest_cache/
+.ruff_caache/
+__pycache__/
+node_modules/
+*.pyc
 
 # Local Envs
 .venv
 .env
-__pycache__/
-node_modules/
-*.pyc
 backend/data/*.db
 
 # Agent
