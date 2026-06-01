@@ -26,7 +26,7 @@ def verify_secret(value: str, digest: str) -> bool:
 def create_access_token(user_id: int, role: str) -> str:
     now = datetime.now(timezone.utc)
     payload = {
-        "sub": user_id,
+        "sub": str(user_id),
         "role": role,
         "type": "access",
         "iat": now,

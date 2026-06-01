@@ -1,4 +1,4 @@
-from fastapi import Depends, Header
+from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -21,7 +21,7 @@ def get_current_user(
         payload = decode_access_token(credentials.credentials)
     except Exception:
         raise UnauthorizedError("invalid or expired access token")
-    user_id = payload["sub"]
+    user_id = int(payload["sub"])
     user = db.get(User, user_id)
     if user is None:
         raise UnauthorizedError("user not found")
