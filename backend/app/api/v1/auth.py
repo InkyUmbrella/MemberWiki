@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi import Request as FastAPIRequest
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.core.limiter import limiter
 from app.schemas.auth import AuthTokenResponse, LoginRequest, RegisterRequest, SendCodeRequest, VerifyCodeRequest
 from app.services import auth_service
 from app.services.time import utcnow
@@ -10,7 +12,8 @@ router = APIRouter()
 
 
 @router.post("/register", response_model=AuthTokenResponse, status_code=201)
-def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> AuthTokenResponse:
+@limiter.limit("10/minute")
+def register(request: FastAPIRequest, payload: RegisterRequest, db: Session = Depends(get_db)) -> AuthTokenResponse:
     response = auth_service.register_user(
         db,
         name=payload.name,
@@ -23,7 +26,8 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> AuthTok
 
 
 @router.post("/login", response_model=AuthTokenResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)) -> AuthTokenResponse:
+@limiter.limit("10/minute")
+def login(request: FastAPIRequest, payload: LoginRequest, db: Session = Depends(get_db)) -> AuthTokenResponse:
     response = auth_service.login_user(db, account=payload.account, password=payload.password)
     db.commit()
     return response
