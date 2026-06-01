@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.core.limiter import limiter
 from app.models.enums import VerificationChannel
-from app.schemas.auth import AuthTokenResponse, LoginRequest, RegisterRequest, SendCodeRequest, VerifyCodeRequest
+from app.schemas.auth import AuthTokenResponse, LoginRequest, RefreshRequest, RegisterRequest, SendCodeRequest, VerifyCodeRequest
 from app.services import auth_service
 from app.services.email_service import send_verification_code
 from app.services.verification_service import generate_code, persist_code, verify_and_consume
@@ -74,3 +74,10 @@ def verify_code(request: FastAPIRequest, payload: VerifyCodeRequest, db: Session
         raise HTTPException(status_code=401, detail="invalid or expired verification code")
     db.commit()
     return {"status": "verified", "target": payload.target, "purpose": payload.purpose.value}
+
+
+@router.post("/refresh", response_model=AuthTokenResponse)
+def refresh(request: FastAPIRequest, payload: RefreshRequest, db: Session = Depends(get_db)) -> AuthTokenResponse:
+    response = auth_service.refresh_tokens(db, refresh_token=payload.refresh_token)
+    db.commit()
+    return response

@@ -1,8 +1,10 @@
+import uuid
 from datetime import timedelta
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models.enums import UserRole, UserStatus
 from app.models.profile import Profile
 from app.models.refresh_token import RefreshToken
@@ -87,10 +89,12 @@ def register_user(
 
     access_token = create_access_token(user.id, user.role)
     refresh_token = create_refresh_token()
+    family = uuid.uuid4().hex
     db.add(
         RefreshToken(
             user_id=user.id,
             token_hash=hash_secret(refresh_token),
+            family=family,
             expires_at=now + timedelta(days=30),
             revoked_at=None,
             last_used_at=None,
@@ -119,10 +123,12 @@ def login_user(db: Session, *, account: str, password: str) -> AuthTokenResponse
     now = utcnow()
     access_token = create_access_token(user.id, user.role)
     refresh_token = create_refresh_token()
+    family = uuid.uuid4().hex
     db.add(
         RefreshToken(
             user_id=user.id,
             token_hash=hash_secret(refresh_token),
+            family=family,
             expires_at=now + timedelta(days=30),
             revoked_at=None,
             last_used_at=None,
@@ -134,5 +140,48 @@ def login_user(db: Session, *, account: str, password: str) -> AuthTokenResponse
     return AuthTokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
+        user=user_to_schema(user),
+    )
+
+
+def refresh_tokens(db: Session, *, refresh_token: str) -> AuthTokenResponse:
+    token_hash = hash_secret(refresh_token)
+    record = db.scalar(
+        select(RefreshToken).where(RefreshToken.token_hash == token_hash)
+    )
+    if record is None:
+        raise UnauthorizedError("invalid refresh token")
+    now = utcnow()
+    if record.expires_at < now:
+        raise UnauthorizedError("refresh token expired")
+    if record.revoked_at is not None:
+        if record.family:
+            db.execute(
+                update(RefreshToken)
+                .where(RefreshToken.family == record.family)
+                .values(revoked_at=now)
+            )
+        raise UnauthorizedError("token reuse detected — session revoked")
+    record.revoked_at = now
+    record.last_used_at = now
+    user = db.get(User, record.user_id)
+    if user is None or user.status != UserStatus.ACTIVE.value:
+        raise UnauthorizedError("account not found or disabled")
+    family = record.family or uuid.uuid4().hex
+    new_access = create_access_token(user.id, user.role)
+    new_refresh = create_refresh_token()
+    expires_at = now + timedelta(days=settings.refresh_token_expire_days)
+    db.add(
+        RefreshToken(
+            user_id=user.id,
+            token_hash=hash_secret(new_refresh),
+            family=family,
+            expires_at=expires_at,
+            created_at=now,
+        )
+    )
+    return AuthTokenResponse(
+        access_token=new_access,
+        refresh_token=new_refresh,
         user=user_to_schema(user),
     )
