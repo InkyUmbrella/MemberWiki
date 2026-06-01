@@ -107,6 +107,7 @@ def register_user(
     return AuthTokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
+        expires_in=settings.access_token_expire_minutes * 60,
         user=user_to_schema(user),
     )
 
@@ -140,6 +141,7 @@ def login_user(db: Session, *, account: str, password: str) -> AuthTokenResponse
     return AuthTokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
+        expires_in=settings.access_token_expire_minutes * 60,
         user=user_to_schema(user),
     )
 
@@ -183,5 +185,6 @@ def refresh_tokens(db: Session, *, refresh_token: str) -> AuthTokenResponse:
     return AuthTokenResponse(
         access_token=new_access,
         refresh_token=new_refresh,
+        expires_in=settings.access_token_expire_minutes * 60,
         user=user_to_schema(user),
     )
