@@ -13,7 +13,7 @@
     "typecheck": "bun --cwd frontend typecheck; bun run tools/typecheck.ts",
     "db:reset": "bun run tools/db.ts reset",
     "clean": "bun run tools/clean.ts",
-    "install:all": "bun run tools/install.ts && bun install"
+    "update": "bun run tools/update.ts",
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
