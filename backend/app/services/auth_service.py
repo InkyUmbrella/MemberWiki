@@ -166,6 +166,7 @@ def refresh_tokens(db: Session, *, refresh_token: str) -> AuthTokenResponse:
         raise UnauthorizedError("token reuse detected — session revoked")
     record.revoked_at = now
     record.last_used_at = now
+    db.flush()
     user = db.get(User, record.user_id)
     if user is None or user.status != UserStatus.ACTIVE.value:
         raise UnauthorizedError("account not found or disabled")
