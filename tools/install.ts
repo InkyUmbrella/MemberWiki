@@ -1,9 +1,12 @@
 import { spawnSync } from "node:child_process";
+import path from "node:path";
 import { askForConfirmation } from "./lib/prompt";
 import { buildPythonCommand, hasManagedEnvironment } from "./lib/python";
 
+const REQUIREMENTS = path.resolve(import.meta.dir, "..", "backend", "requirements.txt");
+
 export function installDeps(python: ReturnType<typeof buildPythonCommand>) {
-  const result = spawnSync(python.command, [...python.args, "-m", "pip", "install", "-r", "backend/requirements.txt"], {
+  const result = spawnSync(python.command, [...python.args, "-m", "pip", "install", "-r", REQUIREMENTS], {
     stdio: "inherit",
   });
   if (result.status !== 0) {
