@@ -8,14 +8,6 @@ from app.core.config import settings
 from app.core.errors import register_exception_handlers
 from app.core.limiter import limiter
 from app.core.request_id import register_request_id_middleware
-from app.services.errors import ServiceError
-
-
-def handle_service_error(_: Request, exc: ServiceError) -> JSONResponse:
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"error": {"code": exc.code, "message": str(exc)}},
-    )
 
 
 def health() -> dict[str, str]:
@@ -29,7 +21,6 @@ def create_app() -> FastAPI:
     app = FastAPI(title="MemberWiki API", version="0.1.0")
     register_request_id_middleware(app)
     register_exception_handlers(app)
-    app.add_exception_handler(ServiceError, handle_service_error)
 
     app.state.limiter = limiter
     app.add_exception_handler(429, _rate_limit_exceeded_handler)
@@ -42,9 +33,18 @@ def create_app() -> FastAPI:
 
 
 def _rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:
+    from app.core.request_id import get_request_id
+
     return JSONResponse(
         status_code=429,
-        content={"error": {"code": "RATE_LIMITED", "message": "too many requests"}},
+        content={
+            "error": {
+                "code": "RATE_LIMITED",
+                "message": "too many requests",
+                "request_id": get_request_id(request),
+                "details": {},
+            }
+        },
     )
 
 
