@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 
-spawnSync("bunx", ["pyright", "--project", "pyrightconfig.json"], {
+const result = spawnSync("bunx", ["pyright", "--project", "pyrightconfig.json"], {
   stdio: "inherit",
 });
+process.exit(result.status ?? 1);

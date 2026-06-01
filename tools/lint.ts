@@ -3,6 +3,7 @@ import { buildPythonCommand } from "./lib/python";
 
 const python = buildPythonCommand();
 const extra = process.argv.slice(2);
-spawnSync(python.command, [...python.args, "-m", "ruff", "check", "app/", "tests/", ...extra], {
+const result = spawnSync(python.command, [...python.args, "-m", "ruff", "check", "app/", "tests/", ...extra], {
   stdio: "inherit", cwd: "backend",
 });
+process.exit(result.status ?? 1);
