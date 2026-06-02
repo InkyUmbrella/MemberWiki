@@ -1,11 +1,10 @@
-import logging
-
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Request as FastAPIRequest
 from sqlalchemy.orm import Session
 
 from app.api.v1.errors import raise_for_result
 from app.core.limiter import limiter
+from app.core.log import get_logger
 from app.db.session import get_db
 from app.models.enums import VerificationChannel
 from app.schemas.auth import (
@@ -21,13 +20,14 @@ from app.services.email_service import send_verification_code
 from app.services.time import utcnow
 from app.services.verification_service import generate_code, persist_code, verify_and_consume
 
-logger = logging.getLogger(__name__)
+log = get_logger(__name__)
 router = APIRouter()
 
 
 @router.post("/register", response_model=AuthTokenResponse, status_code=201)
 @limiter.limit("10/minute")
 def register(request: FastAPIRequest, payload: RegisterRequest, db: Session = Depends(get_db)) -> AuthTokenResponse:
+    log.info(f"register: email={payload.email}")
     result = auth_service.register_user(
         db,
         name=payload.name,
@@ -43,6 +43,7 @@ def register(request: FastAPIRequest, payload: RegisterRequest, db: Session = De
 @router.post("/login", response_model=AuthTokenResponse)
 @limiter.limit("10/minute")
 def login(request: FastAPIRequest, payload: LoginRequest, db: Session = Depends(get_db)) -> AuthTokenResponse:
+    log.info(f"login: account={payload.account}")
     result = auth_service.login_user(db, account=payload.account, password=payload.password)
     raise_for_result(result)
     db.commit()
@@ -57,9 +58,9 @@ def send_code(request: FastAPIRequest, payload: SendCodeRequest, db: Session = D
     try:
         send_result = send_verification_code(payload.target, code)
         if not send_result.ok:
-            logger.warning("failed to send verification code to %s: %s", payload.target, send_result.error)
+            log.warn(f"send_code: failed to send to {payload.target}: {send_result.error}")
     except Exception as exc:
-        logger.warning("failed to send verification code to %s: %s", payload.target, exc)
+        log.warn(f"send_code: failed to send to {payload.target}: {exc}")
     persist_code(
         db,
         channel=payload.channel.value,
@@ -90,6 +91,7 @@ def verify_code(request: FastAPIRequest, payload: VerifyCodeRequest, db: Session
 
 @router.post("/refresh", response_model=AuthTokenResponse)
 def refresh(request: FastAPIRequest, payload: RefreshRequest, db: Session = Depends(get_db)) -> AuthTokenResponse:
+    log.info("refresh token")
     result = auth_service.refresh_tokens(db, refresh_token=payload.refresh_token)
     raise_for_result(result)
     db.commit()

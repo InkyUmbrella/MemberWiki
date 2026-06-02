@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.api.v1.deps import get_current_user
 from app.api.v1.errors import raise_for_result
+from app.core.log import get_logger
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.upload import UploadedFile
@@ -12,6 +13,7 @@ from app.services.upload_service import (
     uploaded_file_schema,
 )
 
+log = get_logger(__name__)
 router = APIRouter()
 
 

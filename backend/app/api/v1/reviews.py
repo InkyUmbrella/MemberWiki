@@ -3,11 +3,13 @@ from sqlalchemy.orm import Session
 
 from app.api.v1.deps import get_current_user
 from app.api.v1.errors import raise_for_result
+from app.core.log import get_logger
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.review import ApproveReviewRequest, RejectReviewRequest, ReviewTask
 from app.services import review_service
 
+log = get_logger(__name__)
 router = APIRouter()
 
 
@@ -18,6 +20,7 @@ def approve_review(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ReviewTask:
+    log.info(f"approve_review: review_id={review_id} reviewer={current_user.id}")
     result = review_service.approve_review(
         db,
         review_id=review_id,
@@ -36,6 +39,7 @@ def reject_review(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ReviewTask:
+    log.info(f"reject_review: review_id={review_id} reviewer={current_user.id}")
     result = review_service.reject_review(
         db,
         review_id=review_id,

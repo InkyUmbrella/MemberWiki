@@ -4,9 +4,12 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from app.core.error_codes import AuthErrors
+from app.core.log import get_logger
 from app.core.result import Result
 from app.models.verification_code import VerificationCode
 from app.services.security import hash_secret, verify_secret
+
+log = get_logger(__name__)
 
 
 def generate_code() -> str:
@@ -46,25 +49,26 @@ def verify_and_consume(
     purpose: str,
     code: str,
 ) -> Result[VerificationCode]:
-    from sqlalchemy import select
+    with log.time(f"verify_and_consume: target={target} {{elapsed}}"):
+        from sqlalchemy import select
 
-    now = datetime.now(timezone.utc)
-    record = db.scalar(
-        select(VerificationCode)
-        .where(
-            VerificationCode.target == target,
-            VerificationCode.purpose == purpose,
-            VerificationCode.consumed_at.is_(None),
+        now = datetime.now(timezone.utc)
+        record = db.scalar(
+            select(VerificationCode)
+            .where(
+                VerificationCode.target == target,
+                VerificationCode.purpose == purpose,
+                VerificationCode.consumed_at.is_(None),
+            )
+            .order_by(VerificationCode.created_at.desc())
+            .limit(1)
         )
-        .order_by(VerificationCode.created_at.desc())
-        .limit(1)
-    )
-    if record is None:
-        return Result.failure(AuthErrors.INVALID_CODE)
-    if record.expires_at.replace(tzinfo=timezone.utc) < now:
-        return Result.failure(AuthErrors.INVALID_CODE)
-    record.attempt_count += 1
-    if not verify_secret(code, record.code_hash):
-        return Result.failure(AuthErrors.INVALID_CODE)
-    record.consumed_at = now
-    return Result.success(record)
+        if record is None:
+            return Result.failure(AuthErrors.INVALID_CODE)
+        if record.expires_at.replace(tzinfo=timezone.utc) < now:
+            return Result.failure(AuthErrors.INVALID_CODE)
+        record.attempt_count += 1
+        if not verify_secret(code, record.code_hash):
+            return Result.failure(AuthErrors.INVALID_CODE)
+        record.consumed_at = now
+        return Result.success(record)

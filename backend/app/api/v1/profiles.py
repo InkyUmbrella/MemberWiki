@@ -3,12 +3,14 @@ from sqlalchemy.orm import Session
 
 from app.api.v1.deps import get_current_user
 from app.api.v1.errors import raise_for_result
+from app.core.log import get_logger
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.profile import ProfileDraftResponse, PublicProfile, UpsertProfileDraftRequest
 from app.schemas.review import ReviewTask
 from app.services import profile_service, review_service
 
+log = get_logger(__name__)
 router = APIRouter()
 
 
@@ -17,6 +19,7 @@ def get_my_draft(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ProfileDraftResponse:
+    log.info(f"get_my_draft: user_id={current_user.id}")
     profile_result = profile_service.get_primary_profile(db, current_user.id)
     raise_for_result(profile_result)
     profile = profile_result.unwrap()
@@ -31,6 +34,7 @@ def put_my_draft(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ProfileDraftResponse:
+    log.info(f"put_my_draft: user_id={current_user.id}")
     profile_result = profile_service.get_primary_profile(db, current_user.id)
     raise_for_result(profile_result)
     profile = profile_result.unwrap()
@@ -55,6 +59,7 @@ def submit_my_review(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ReviewTask:
+    log.info(f"submit_my_review: user_id={current_user.id}")
     profile_result = profile_service.get_primary_profile(db, current_user.id)
     raise_for_result(profile_result)
     profile = profile_result.unwrap()
