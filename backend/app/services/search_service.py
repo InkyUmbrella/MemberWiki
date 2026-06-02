@@ -44,5 +44,6 @@ def search_members(db: Session, *, keyword: str | None = None, limit: int = 20) 
                     award_count=award_count,
                     updated_at=profile.updated_at,
                 )
-            )
-        return Result.success((results, total))
+        )
+    log.info(f"search_members: keyword={keyword} total={total} returned={len(results)}")
+    return Result.success((results, total))

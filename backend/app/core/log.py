@@ -11,6 +11,12 @@ from typing import Generator
 from app.core.request_id import get_request_id
 
 
+class _FlushingHandler(logging.StreamHandler):
+    def emit(self, record: logging.LogRecord) -> None:
+        super().emit(record)
+        self.flush()
+
+
 class JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         entry: dict = {
@@ -60,7 +66,7 @@ def get_logger(name: str) -> Logger:
     return Logger(name)
 
 
-def setup_logging(level: str = "INFO", log_dir: str | None = None) -> None:
+def setup_logging(level: str = "INFO") -> None:
     formatter = JSONFormatter()
     root = logging.getLogger()
     root.setLevel(getattr(logging, level.upper(), logging.INFO))
@@ -70,15 +76,9 @@ def setup_logging(level: str = "INFO", log_dir: str | None = None) -> None:
     stdout_handler.setFormatter(formatter)
     root.addHandler(stdout_handler)
 
-    if log_dir is None:
-        candidate = Path(__file__).resolve().parent.parent.parent / "logs"
-        if candidate.exists():
-            log_dir = str(candidate)
-
-    if log_dir:
-        os.makedirs(log_dir, exist_ok=True)
-        file_handler = logging.FileHandler(
-            os.path.join(log_dir, "app.jsonl"), encoding="utf-8"
-        )
-        file_handler.setFormatter(formatter)
-        root.addHandler(file_handler)
+    logs_dir = str(Path(__file__).resolve().parent.parent.parent / "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+    file_stream = open(str(Path(logs_dir) / "app.jsonl"), "a", encoding="utf-8")
+    file_handler = _FlushingHandler(file_stream)
+    file_handler.setFormatter(formatter)
+    root.addHandler(file_handler)

@@ -63,6 +63,7 @@ def register_user(
         )
         db.add(user)
         db.flush()
+        log.info(f"register_user: user_id={user.id} created")
 
         profile = Profile(
             user_id=user.id,
@@ -93,6 +94,7 @@ def register_user(
             )
         )
         db.flush()
+        log.info(f"register_user: tokens issued user_id={user.id}")
         return Result.success(AuthTokenResponse(
             access_token=access_token,
             refresh_token=refresh_token,

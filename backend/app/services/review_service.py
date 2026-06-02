@@ -131,6 +131,7 @@ def submit_review(db: Session, *, profile_id: int, submitter_user_id: int) -> Re
         )
         db.add(review)
         db.flush()
+        log.info(f"submit_review: review_id={review.id} draft_id={draft.id}")
         return Result.success(_review_task(review))
 
 
@@ -180,6 +181,7 @@ def approve_review(
             sp.rollback()
             raise
         db.flush()
+        log.info(f"approve_review: review_id={review_id} profile_id={profile.id} achievements rebuilt")
         return Result.success(_review_task(review))
 
 
@@ -215,4 +217,5 @@ def reject_review(
                 draft.updated_at = now
 
         db.flush()
+        log.info(f"reject_review: review_id={review_id} reason={reason}")
         return Result.success(_review_task(review))

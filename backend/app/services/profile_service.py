@@ -114,6 +114,8 @@ def save_profile_draft(
                 db.add(ProfileDraftFile(draft_id=draft.id, media_asset_id=asset_id, created_at=now))
 
         db.flush()
+
+        log.info(f"save_profile_draft: version_no={next_version} proof_files={len(unique_file_ids)}")
         return Result.success(draft)
 
 
@@ -160,6 +162,7 @@ def get_public_profile(db: Session, *, profile_id: int) -> Result[PublicProfile]
             return Result.failure(ProfileErrors.NOT_FOUND)
         profile, user = row
 
+        log.info(f"get_public_profile: profile_id={profile_id}")
         achievements = db.scalars(
             select(Achievement)
             .where(Achievement.profile_id == profile_id)

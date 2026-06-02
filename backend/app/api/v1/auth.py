@@ -54,6 +54,7 @@ def login(request: FastAPIRequest, payload: LoginRequest, db: Session = Depends(
 def send_code(request: FastAPIRequest, payload: SendCodeRequest, db: Session = Depends(get_db)) -> dict[str, str]:
     if payload.channel != VerificationChannel.EMAIL:
         raise HTTPException(status_code=501, detail="only email verification is supported")
+    log.info(f"send_code: channel={payload.channel.value} target={payload.target}")
     code = generate_code()
     try:
         send_result = send_verification_code(payload.target, code)
@@ -78,6 +79,7 @@ def send_code(request: FastAPIRequest, payload: SendCodeRequest, db: Session = D
 def verify_code(request: FastAPIRequest, payload: VerifyCodeRequest, db: Session = Depends(get_db)) -> dict[str, str]:
     if payload.channel != VerificationChannel.EMAIL:
         raise HTTPException(status_code=501, detail="only email verification is supported")
+    log.info(f"verify_code: target={payload.target}")
     result = verify_and_consume(
         db,
         target=payload.target,

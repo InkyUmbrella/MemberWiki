@@ -26,6 +26,7 @@ def create_upload_metadata(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> UploadedFile:
+    log.info(f"create_upload_metadata: name={file_name} size={size} user={current_user.id}")
     result = create_media_asset(
         db,
         owner_user_id=current_user.id,
@@ -45,6 +46,7 @@ def delete_upload(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
+    log.info(f"delete_upload: file_id={file_id} user={current_user.id}")
     result = soft_delete_media_asset(db, file_id=file_id, owner_user_id=current_user.id)
     raise_for_result(result)
     db.commit()

@@ -7,8 +7,10 @@ from app.api.v1.router import router as api_v1_router
 from app.core.config import settings
 from app.core.errors import register_exception_handlers
 from app.core.limiter import limiter
-from app.core.log import setup_logging
+from app.core.log import get_logger, setup_logging
 from app.core.request_id import register_request_id_middleware
+
+log = get_logger(__name__)
 
 
 def health() -> dict[str, str]:
