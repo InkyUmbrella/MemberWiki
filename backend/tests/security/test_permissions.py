@@ -2,7 +2,8 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.services.errors import ForbiddenError
-from app.services.profile_service import approve_review, save_profile_draft, submit_review
+from app.services.profile_service import save_profile_draft
+from app.services.review_service import approve_review, submit_review
 from tests.helpers.factories import draft_payload, register_member
 
 

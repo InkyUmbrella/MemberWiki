@@ -5,7 +5,7 @@ from app.api.v1.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.review import ReviewTask
-from app.services import profile_service
+from app.services import review_service
 
 router = APIRouter()
 
@@ -17,7 +17,7 @@ def approve_review(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ReviewTask:
-    task = profile_service.approve_review(
+    task = review_service.approve_review(
         db,
         review_id=review_id,
         reviewer_user_id=current_user.id,
@@ -34,7 +34,7 @@ def reject_review(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ReviewTask:
-    task = profile_service.reject_review(
+    task = review_service.reject_review(
         db,
         review_id=review_id,
         reviewer_user_id=current_user.id,

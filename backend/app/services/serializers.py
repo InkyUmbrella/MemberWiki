@@ -1,8 +1,10 @@
 import json
+from collections.abc import Sequence
 from datetime import date
 from typing import Any
 
 from app.schemas.profile import AwardItem, ExperienceItem
+from app.schemas.user import UserResponse
 
 
 def _json_default(value: Any) -> str:
@@ -14,17 +16,17 @@ def _json_default(value: Any) -> str:
 def serialize_draft_content(
     *,
     bio: str,
-    experiences: list[ExperienceItem | dict[str, Any]],
-    awards: list[AwardItem | dict[str, Any]],
+    experiences: Sequence[ExperienceItem],
+    awards: Sequence[AwardItem],
 ) -> str:
     payload = {
         "bio": bio,
         "experiences": [
-            item.model_dump() if hasattr(item, "model_dump") else item.dict() if hasattr(item, "dict") else item
+            item.model_dump()  # pyright: ignore[reportAttributeAccessIssue]
             for item in experiences
         ],
         "awards": [
-            item.model_dump() if hasattr(item, "model_dump") else item.dict() if hasattr(item, "dict") else item
+            item.model_dump()  # pyright: ignore[reportAttributeAccessIssue]
             for item in awards
         ],
     }
@@ -50,3 +52,18 @@ def parse_date(value: str | date | None) -> date | None:
     if value is None or isinstance(value, date):
         return value
     return date.fromisoformat(value)
+
+
+def user_to_schema(user: Any) -> UserResponse:
+    from app.models.enums import UserRole
+
+    return UserResponse(
+        id=user.id,
+        name=user.display_name,
+        email=user.email,
+        phone=user.phone,
+        avatar_url=user.avatar_url,
+        role=UserRole(user.role),
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+    )

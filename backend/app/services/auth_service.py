@@ -10,7 +10,6 @@ from app.models.profile import Profile
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.schemas.auth import AuthTokenResponse
-from app.schemas.user import UserResponse
 from app.services.errors import ConflictError, UnauthorizedError, ValidationError
 from app.services.security import (
     create_access_token,
@@ -20,20 +19,8 @@ from app.services.security import (
     needs_password_upgrade,
     verify_password,
 )
+from app.services.serializers import user_to_schema
 from app.services.time import utcnow
-
-
-def user_to_schema(user: User) -> UserResponse:
-    return UserResponse(
-        id=user.id,
-        name=user.display_name,
-        email=user.email,
-        phone=user.phone,
-        avatar_url=user.avatar_url,
-        role=UserRole(user.role),
-        created_at=user.created_at,
-        updated_at=user.updated_at,
-    )
 
 
 def register_user(
@@ -52,7 +39,9 @@ def register_user(
         raise ValidationError("email or phone is required")
 
     existing = db.scalar(
-        select(User).where(or_(User.email == email, User.phone == phone if phone else False))
+        select(User).where(
+            or_(User.email == email, User.phone == phone) if phone else (User.email == email)
+        )
     )
     if existing:
         raise ConflictError("account already exists")

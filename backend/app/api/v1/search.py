@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas.common import PaginatedResponse
 from app.schemas.profile import SearchResultItem
-from app.services.profile_service import search_members
+from app.services.search_service import search_members
 
 router = APIRouter()
 

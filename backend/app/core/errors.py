@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -34,7 +35,7 @@ def error_payload(
         "error": {
             "code": code,
             "message": message,
-            "details": details or {},
+            "details": details if details is not None else {},
             "request_id": request_id,
         }
     }
@@ -46,7 +47,7 @@ def error_response(
     code: str,
     message: str,
     request_id: str,
-    details: dict[str, Any] | list[dict[str, Any]] | None = None,
+    details: dict[str, Any] | Sequence[Any] | None = None,
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
@@ -54,7 +55,7 @@ def error_response(
             error_payload(
                 code=code,
                 message=message,
-                details=details,
+                details=details if isinstance(details, list) else details,  # pyright: ignore[reportArgumentType]
                 request_id=request_id,
             )
         ),
@@ -106,7 +107,7 @@ async def unhandled_error_handler(request: Request, exc: Exception) -> JSONRespo
 
 
 def register_exception_handlers(app: FastAPI) -> None:
-    app.add_exception_handler(AppError, app_error_handler)
-    app.add_exception_handler(RequestValidationError, validation_error_handler)
-    app.add_exception_handler(StarletteHTTPException, http_error_handler)
+    app.add_exception_handler(AppError, app_error_handler)  # pyright: ignore[reportArgumentType]
+    app.add_exception_handler(RequestValidationError, validation_error_handler)  # pyright: ignore[reportArgumentType]
+    app.add_exception_handler(StarletteHTTPException, http_error_handler)  # pyright: ignore[reportArgumentType]
     app.add_exception_handler(Exception, unhandled_error_handler)

@@ -8,7 +8,7 @@ from app.models.profile import Profile
 from app.models.user import User
 from app.schemas.profile import ProfileDraftResponse, PublicProfile, UpsertProfileDraftRequest
 from app.schemas.review import ReviewTask
-from app.services import profile_service
+from app.services import profile_service, review_service
 from app.services.errors import NotFoundError
 
 router = APIRouter()
@@ -59,7 +59,7 @@ def submit_my_review(
     current_user: User = Depends(get_current_user),
 ) -> ReviewTask:
     profile = _current_primary_profile(db, current_user.id)
-    task = profile_service.submit_review(db, profile_id=profile.id, submitter_user_id=current_user.id)
+    task = review_service.submit_review(db, profile_id=profile.id, submitter_user_id=current_user.id)
     db.commit()
     return task
 

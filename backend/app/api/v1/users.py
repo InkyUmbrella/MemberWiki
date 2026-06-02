@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from app.api.v1.deps import get_current_user
 from app.models.user import User
 from app.schemas.user import UserResponse
-from app.services.auth_service import user_to_schema
+from app.services.serializers import user_to_schema
 
 router = APIRouter()
 
