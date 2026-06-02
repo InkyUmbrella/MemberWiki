@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.enums import DraftReviewStatus
 
@@ -14,6 +14,14 @@ class ReviewTask(BaseModel):
     reject_reason: str | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class ApproveReviewRequest(BaseModel):
+    comment: str | None = None
+
+
+class RejectReviewRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=500)
 
 
 class ProfileTimelineItem(BaseModel):

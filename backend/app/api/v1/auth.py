@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Request as FastAPIRequest
 from sqlalchemy.orm import Session
@@ -18,6 +20,7 @@ from app.services.email_service import send_verification_code
 from app.services.time import utcnow
 from app.services.verification_service import generate_code, persist_code, verify_and_consume
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -48,6 +51,12 @@ def send_code(request: FastAPIRequest, payload: SendCodeRequest, db: Session = D
     if payload.channel != VerificationChannel.EMAIL:
         raise HTTPException(status_code=501, detail="only email verification is supported")
     code = generate_code()
+    try:
+        send_verification_code(payload.target, code)
+    except RuntimeError as exc:
+        logger.warning("SMTP not configured, cannot send code to %s: %s", payload.target, exc)
+    except Exception as exc:
+        logger.warning("failed to send verification code to %s: %s", payload.target, exc)
     persist_code(
         db,
         channel=payload.channel.value,
@@ -58,12 +67,6 @@ def send_code(request: FastAPIRequest, payload: SendCodeRequest, db: Session = D
         ua=request.headers.get("user-agent"),
     )
     db.commit()
-    try:
-        send_verification_code(payload.target, code)
-    except RuntimeError:
-        pass
-    except Exception:
-        pass
     return {"message": "code sent", "timestamp": utcnow().isoformat()}
 
 

@@ -16,6 +16,5 @@ def search(
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
 ) -> PaginatedResponse[SearchResultItem]:
-    # Minimal skeleton: page_size-limited result without a separate count query.
-    items = search_members(db, keyword=keyword, limit=page_size)
-    return PaginatedResponse(items=items, page=page, page_size=page_size, total=len(items))
+    items, total = search_members(db, keyword=keyword, limit=page_size)
+    return PaginatedResponse(items=items, page=page, page_size=page_size, total=total)

@@ -164,7 +164,12 @@ def approve_review(
     profile.bio = content["bio"]
     profile.published_version_no = draft.version_no
     profile.updated_at = now
-    _rebuild_achievements(db, profile_id=profile.id, content=content)
+    sp = db.begin_nested()
+    try:
+        _rebuild_achievements(db, profile_id=profile.id, content=content)
+    except Exception:
+        sp.rollback()
+        raise
     db.flush()
     return _review_task(review)
 
