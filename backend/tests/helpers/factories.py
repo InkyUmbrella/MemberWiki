@@ -38,7 +38,8 @@ def register_member(
     email: str = "alice@example.com",
     password: str = "Passw0rd!23",
 ) -> tuple[User, Profile]:
-    response = register_user(db, name=name, email=email, phone=None, password=password)
+    result = register_user(db, name=name, email=email, phone=None, password=password)
+    response = result.unwrap()
     db.commit()
     user = db.get(User, response.user.id)
     profile = db.query(Profile).filter(Profile.user_id == user.id).one()
@@ -71,4 +72,4 @@ def create_proof_asset(
         file_path=file_path,
         file_type="application/pdf",
         file_size=128,
-    )
+    ).unwrap()

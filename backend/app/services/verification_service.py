@@ -3,6 +3,8 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
+from app.core.error_codes import AuthErrors
+from app.core.result import Result
 from app.models.verification_code import VerificationCode
 from app.services.security import hash_secret, verify_secret
 
@@ -43,7 +45,7 @@ def verify_and_consume(
     target: str,
     purpose: str,
     code: str,
-) -> VerificationCode | None:
+) -> Result[VerificationCode]:
     from sqlalchemy import select
 
     now = datetime.now(timezone.utc)
@@ -58,11 +60,11 @@ def verify_and_consume(
         .limit(1)
     )
     if record is None:
-        return None
+        return Result.failure(AuthErrors.INVALID_CODE)
     if record.expires_at.replace(tzinfo=timezone.utc) < now:
-        return None
+        return Result.failure(AuthErrors.INVALID_CODE)
     record.attempt_count += 1
     if not verify_secret(code, record.code_hash):
-        return None
+        return Result.failure(AuthErrors.INVALID_CODE)
     record.consumed_at = now
-    return record
+    return Result.success(record)

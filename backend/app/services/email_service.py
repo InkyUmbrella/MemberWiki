@@ -2,16 +2,20 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from app.core.config import settings
+from app.core.error_codes import AuthErrors
+from app.core.result import Result
 
 
-def send_verification_code(to_email: str, code: str) -> None:
+def send_verification_code(to_email: str, code: str) -> Result[None]:
+    from app.core.config import settings
+
     if not settings.smtp_host:
-        raise RuntimeError("SMTP_HOST is not configured")
+        return Result.failure(AuthErrors.SMTP_NOT_CONFIGURED)
     msg = MIMEMultipart("alternative")
     msg["From"] = settings.smtp_from
     msg["To"] = to_email
     msg["Subject"] = "MemberWiki 验证码"
+
     msg.attach(
         MIMEText(
             f"您好，您的 MemberWiki 验证码是：\n\n    {code}\n\n"
@@ -25,3 +29,4 @@ def send_verification_code(to_email: str, code: str) -> None:
         if settings.smtp_username and settings.smtp_password:
             server.login(settings.smtp_username, settings.smtp_password)
         server.send_message(msg)
+    return Result.success(None)

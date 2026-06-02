@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
 
+from app.core.error_codes import UploadErrors
+from app.core.result import Result
 from app.models.media_asset import MediaAsset
 from app.schemas.upload import UploadedFile
-from app.services.errors import ForbiddenError, NotFoundError, ValidationError
 from app.services.serializers import file_url_from_path
 from app.services.time import utcnow
 
@@ -27,13 +28,13 @@ def create_media_asset(
     file_type: str,
     file_size: int,
     checksum_sha256: str | None = None,
-) -> MediaAsset:
+) -> Result[MediaAsset]:
     if not file_name:
-        raise ValidationError("file_name is required")
+        return Result.failure(UploadErrors.FILE_NAME_REQUIRED)
     if not file_path:
-        raise ValidationError("file_path is required")
+        return Result.failure(UploadErrors.FILE_PATH_REQUIRED)
     if file_size <= 0:
-        raise ValidationError("file_size must be positive")
+        return Result.failure(UploadErrors.FILE_SIZE_NOT_POSITIVE)
 
     now = utcnow()
     asset = MediaAsset(
@@ -50,15 +51,15 @@ def create_media_asset(
     )
     db.add(asset)
     db.flush()
-    return asset
+    return Result.success(asset)
 
 
-def soft_delete_media_asset(db: Session, *, file_id: int, owner_user_id: int) -> bool:
+def soft_delete_media_asset(db: Session, *, file_id: int, owner_user_id: int) -> Result[bool]:
     asset = db.get(MediaAsset, file_id)
     if asset is None:
-        raise NotFoundError("file not found")
+        return Result.failure(UploadErrors.NOT_FOUND)
     if asset.owner_user_id != owner_user_id:
-        raise ForbiddenError("cannot delete another user's file")
+        return Result.failure(UploadErrors.CANNOT_DELETE_OTHERS)
     asset.deleted_at = utcnow()
     db.flush()
-    return True
+    return Result.success(True)

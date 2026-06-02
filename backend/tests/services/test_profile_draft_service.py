@@ -13,7 +13,7 @@ def test_duplicate_proof_file_ids_are_deduplicated(db: Session) -> None:
     )
     experiences, awards = draft_payload()
 
-    save_profile_draft(
+    draft_result = save_profile_draft(
         db,
         profile_id=profile.id,
         editor_user_id=user.id,
@@ -22,6 +22,9 @@ def test_duplicate_proof_file_ids_are_deduplicated(db: Session) -> None:
         awards=awards,
         proof_file_ids=[asset.id, asset.id],
     )
+    assert draft_result.ok
 
-    latest = get_my_latest_draft(db, profile_id=profile.id, editor_user_id=user.id)
+    latest_result = get_my_latest_draft(db, profile_id=profile.id, editor_user_id=user.id)
+    assert latest_result.ok
+    latest = latest_result.unwrap()
     assert [file.id for file in latest.proof_files] == [asset.id]

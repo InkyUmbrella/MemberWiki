@@ -1,6 +1,8 @@
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
+from app.core.error_codes import ProfileErrors
+from app.core.result import Result
 from app.models.achievement import Achievement
 from app.models.enums import AchievementCategory, DraftReviewStatus
 from app.models.media_asset import MediaAsset
@@ -15,7 +17,6 @@ from app.schemas.profile import (
     PublicProfile,
 )
 from app.schemas.upload import UploadedFile
-from app.services.errors import ForbiddenError, NotFoundError, ValidationError
 from app.services.serializers import (
     file_url_from_path,
     parse_draft_content,
@@ -36,18 +37,18 @@ def _uploaded_file(asset: MediaAsset) -> UploadedFile:
     )
 
 
-def _require_profile(db: Session, profile_id: int) -> Profile:
+def _require_profile(db: Session, profile_id: int) -> Result[Profile]:
     profile = db.get(Profile, profile_id)
     if profile is None:
-        raise NotFoundError("profile not found")
-    return profile
+        return Result.failure(ProfileErrors.NOT_FOUND)
+    return Result.success(profile)
 
 
-def get_primary_profile(db: Session, user_id: int) -> Profile:
+def get_primary_profile(db: Session, user_id: int) -> Result[Profile]:
     profile = db.scalar(select(Profile).where(Profile.user_id == user_id).order_by(Profile.id.asc()))
     if profile is None:
-        raise NotFoundError("profile not found")
-    return profile
+        return Result.failure(ProfileErrors.NOT_FOUND)
+    return Result.success(profile)
 
 
 def save_profile_draft(
@@ -59,10 +60,13 @@ def save_profile_draft(
     experiences: list[ExperienceItem],
     awards: list[AwardItem],
     proof_file_ids: list[int],
-) -> ProfileDraft:
-    profile = _require_profile(db, profile_id)
+) -> Result[ProfileDraft]:
+    profile_result = _require_profile(db, profile_id)
+    if not profile_result.ok:
+        return profile_result  # pyright: ignore[reportReturnType]
+    profile = profile_result.unwrap()
     if profile.user_id != editor_user_id:
-        raise ForbiddenError("cannot edit another user's profile")
+        return Result.failure(ProfileErrors.CANNOT_EDIT_OTHERS)
     now = utcnow()
     max_version = db.scalar(
         select(func.max(ProfileDraft.version_no)).where(ProfileDraft.profile_id == profile_id)
@@ -100,15 +104,15 @@ def save_profile_draft(
         found_ids = {asset.id for asset in assets}
         missing = set(unique_file_ids) - found_ids
         if missing:
-            raise ValidationError(f"invalid proof_file_ids: {sorted(missing)}")
+            return Result.failure(ProfileErrors.INVALID_PROOF_FILES)
         for asset_id in unique_file_ids:
             db.add(ProfileDraftFile(draft_id=draft.id, media_asset_id=asset_id, created_at=now))
 
     db.flush()
-    return draft
+    return Result.success(draft)
 
 
-def get_my_latest_draft(db: Session, *, profile_id: int, editor_user_id: int) -> ProfileDraftResponse:
+def get_my_latest_draft(db: Session, *, profile_id: int, editor_user_id: int) -> Result[ProfileDraftResponse]:
     draft = db.scalar(
         select(ProfileDraft).where(
             ProfileDraft.profile_id == profile_id,
@@ -117,7 +121,7 @@ def get_my_latest_draft(db: Session, *, profile_id: int, editor_user_id: int) ->
         )
     )
     if draft is None:
-        raise NotFoundError("draft not found")
+        return Result.failure(ProfileErrors.DRAFT_NOT_FOUND)
 
     content = parse_draft_content(draft.draft_content)
     proof_assets = db.scalars(
@@ -127,7 +131,7 @@ def get_my_latest_draft(db: Session, *, profile_id: int, editor_user_id: int) ->
         .order_by(MediaAsset.created_at.asc())
     ).all()
 
-    return ProfileDraftResponse(
+    return Result.success(ProfileDraftResponse(
         id=draft.id,
         user_id=draft.editor_user_id,
         review_status=DraftReviewStatus(draft.review_status),
@@ -136,17 +140,17 @@ def get_my_latest_draft(db: Session, *, profile_id: int, editor_user_id: int) ->
         awards=[AwardItem(**item) for item in content["awards"]],
         proof_files=[_uploaded_file(asset) for asset in proof_assets],
         updated_at=draft.updated_at,
-    )
+    ))
 
 
-def get_public_profile(db: Session, *, profile_id: int) -> PublicProfile:
+def get_public_profile(db: Session, *, profile_id: int) -> Result[PublicProfile]:
     row = db.execute(
         select(Profile, User)
         .join(User, User.id == Profile.user_id)
         .where(Profile.id == profile_id, Profile.visibility == "public")
     ).one_or_none()
     if row is None:
-        raise NotFoundError("profile not found")
+        return Result.failure(ProfileErrors.NOT_FOUND)
     profile, user = row
 
     achievements = db.scalars(
@@ -175,11 +179,11 @@ def get_public_profile(db: Session, *, profile_id: int) -> PublicProfile:
         for item in achievements
         if item.category == AchievementCategory.AWARD.value
     ]
-    return PublicProfile(
+    return Result.success(PublicProfile(
         id=profile.id,
         user=user_to_schema(user),
         bio=profile.bio or "",
         experiences=experiences,
         awards=awards,
         updated_at=profile.updated_at,
-    )
+    ))

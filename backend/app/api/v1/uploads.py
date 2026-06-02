@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Form
 from sqlalchemy.orm import Session
 
 from app.api.v1.deps import get_current_user
+from app.api.v1.errors import raise_for_result
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.upload import UploadedFile
@@ -23,9 +24,7 @@ def create_upload_metadata(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> UploadedFile:
-    # Minimal DB integration endpoint. Real multipart file persistence should write
-    # to object/local storage first, then call this metadata insertion path.
-    asset = create_media_asset(
+    result = create_media_asset(
         db,
         owner_user_id=current_user.id,
         file_name=file_name,
@@ -33,8 +32,9 @@ def create_upload_metadata(
         file_type=mime_type,
         file_size=size,
     )
+    raise_for_result(result)
     db.commit()
-    return uploaded_file_schema(asset)
+    return uploaded_file_schema(result.unwrap())
 
 
 @router.delete("/{file_id}", status_code=204)
@@ -43,5 +43,6 @@ def delete_upload(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
-    soft_delete_media_asset(db, file_id=file_id, owner_user_id=current_user.id)
+    result = soft_delete_media_asset(db, file_id=file_id, owner_user_id=current_user.id)
+    raise_for_result(result)
     db.commit()

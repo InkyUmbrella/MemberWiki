@@ -5,12 +5,13 @@ from sqlalchemy import or_, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.error_codes import AuthErrors
+from app.core.result import Result
 from app.models.enums import UserRole, UserStatus
 from app.models.profile import Profile
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.schemas.auth import AuthTokenResponse
-from app.services.errors import ConflictError, UnauthorizedError, ValidationError
 from app.services.security import (
     create_access_token,
     create_refresh_token,
@@ -30,13 +31,11 @@ def register_user(
     email: str | None,
     phone: str | None,
     password: str,
-) -> AuthTokenResponse:
-    # TODO(product): current V1 users.email is NOT NULL, so pure phone registration
-    # cannot be persisted until the nullable-email compatibility migration is accepted.
+) -> Result[AuthTokenResponse]:
     if not email:
-        raise ValidationError("email is required by current V1 database schema")
+        return Result.failure(AuthErrors.EMAIL_REQUIRED)
     if not email and not phone:
-        raise ValidationError("email or phone is required")
+        return Result.failure(AuthErrors.EMAIL_OR_PHONE_REQUIRED)
 
     existing = db.scalar(
         select(User).where(
@@ -44,7 +43,7 @@ def register_user(
         )
     )
     if existing:
-        raise ConflictError("account already exists")
+        return Result.failure(AuthErrors.ACCOUNT_EXISTS)
 
     now = utcnow()
     user = User(
@@ -61,9 +60,6 @@ def register_user(
     db.add(user)
     db.flush()
 
-    # Stage-compatible default: create one primary profile for /profiles/me/draft.
-    # TODO(product): docs say users 1:N profiles, while /profiles/me/draft implies
-    # a current primary profile. Add an explicit primary flag if multi-profile is kept.
     profile = Profile(
         user_id=user.id,
         headline=None,
@@ -93,22 +89,22 @@ def register_user(
         )
     )
     db.flush()
-    return AuthTokenResponse(
+    return Result.success(AuthTokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         expires_in=settings.access_token_expire_minutes * 60,
         user=user_to_schema(user),
-    )
+    ))
 
 
-def login_user(db: Session, *, account: str, password: str) -> AuthTokenResponse:
+def login_user(db: Session, *, account: str, password: str) -> Result[AuthTokenResponse]:
     user = db.scalar(select(User).where(or_(User.email == account, User.phone == account)))
     if user is None or not verify_password(password, user.password_hash):
-        raise UnauthorizedError("invalid account or password")
+        return Result.failure(AuthErrors.INVALID_CREDENTIALS)
     if needs_password_upgrade(user.password_hash):
         user.password_hash = hash_password(password)
     if user.status != UserStatus.ACTIVE.value:
-        raise ValidationError("user is disabled")
+        return Result.failure(AuthErrors.USER_DISABLED)
 
     now = utcnow()
     access_token = create_access_token(user.id, user.role)
@@ -127,24 +123,24 @@ def login_user(db: Session, *, account: str, password: str) -> AuthTokenResponse
             created_at=now,
         )
     )
-    return AuthTokenResponse(
+    return Result.success(AuthTokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         expires_in=settings.access_token_expire_minutes * 60,
         user=user_to_schema(user),
-    )
+    ))
 
 
-def refresh_tokens(db: Session, *, refresh_token: str) -> AuthTokenResponse:
+def refresh_tokens(db: Session, *, refresh_token: str) -> Result[AuthTokenResponse]:
     token_hash = hash_secret(refresh_token)
     record = db.scalar(
         select(RefreshToken).where(RefreshToken.token_hash == token_hash)
     )
     if record is None:
-        raise UnauthorizedError("invalid refresh token")
+        return Result.failure(AuthErrors.INVALID_TOKEN)
     now = utcnow()
     if record.expires_at < now:
-        raise UnauthorizedError("refresh token expired")
+        return Result.failure(AuthErrors.TOKEN_EXPIRED)
     if record.revoked_at is not None:
         if record.family:
             db.execute(
@@ -152,13 +148,13 @@ def refresh_tokens(db: Session, *, refresh_token: str) -> AuthTokenResponse:
                 .where(RefreshToken.family == record.family)
                 .values(revoked_at=now)
             )
-        raise UnauthorizedError("token reuse detected — session revoked")
+        return Result.failure(AuthErrors.TOKEN_REUSE)
     record.revoked_at = now
     record.last_used_at = now
     db.flush()
     user = db.get(User, record.user_id)
     if user is None or user.status != UserStatus.ACTIVE.value:
-        raise UnauthorizedError("account not found or disabled")
+        return Result.failure(AuthErrors.ACCOUNT_NOT_FOUND_OR_DISABLED)
     family = record.family or uuid.uuid4().hex
     new_access = create_access_token(user.id, user.role)
     new_refresh = create_refresh_token()
@@ -172,9 +168,9 @@ def refresh_tokens(db: Session, *, refresh_token: str) -> AuthTokenResponse:
             created_at=now,
         )
     )
-    return AuthTokenResponse(
+    return Result.success(AuthTokenResponse(
         access_token=new_access,
         refresh_token=new_refresh,
         expires_in=settings.access_token_expire_minutes * 60,
         user=user_to_schema(user),
-    )
+    ))

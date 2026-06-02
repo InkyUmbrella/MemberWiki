@@ -9,7 +9,7 @@ def test_deleted_upload_is_not_returned_in_proof_files(db: Session) -> None:
     user, profile = register_member(db)
     asset = create_proof_asset(db, owner_user_id=user.id)
     experiences, awards = draft_payload()
-    save_profile_draft(
+    save_draft_result = save_profile_draft(
         db,
         profile_id=profile.id,
         editor_user_id=user.id,
@@ -18,9 +18,17 @@ def test_deleted_upload_is_not_returned_in_proof_files(db: Session) -> None:
         awards=awards,
         proof_file_ids=[asset.id],
     )
-    before_delete = get_my_latest_draft(db, profile_id=profile.id, editor_user_id=user.id)
+    assert save_draft_result.ok
+
+    before_result = get_my_latest_draft(db, profile_id=profile.id, editor_user_id=user.id)
+    assert before_result.ok
+    before_delete = before_result.unwrap()
     assert len(before_delete.proof_files) == 1
 
-    soft_delete_media_asset(db, file_id=asset.id, owner_user_id=user.id)
-    after_delete = get_my_latest_draft(db, profile_id=profile.id, editor_user_id=user.id)
+    delete_result = soft_delete_media_asset(db, file_id=asset.id, owner_user_id=user.id)
+    assert delete_result.ok
+
+    after_result = get_my_latest_draft(db, profile_id=profile.id, editor_user_id=user.id)
+    assert after_result.ok
+    after_delete = after_result.unwrap()
     assert after_delete.proof_files == []

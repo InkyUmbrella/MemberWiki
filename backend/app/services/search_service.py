@@ -1,6 +1,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.result import Result
 from app.models.achievement import Achievement
 from app.models.enums import AchievementCategory
 from app.models.profile import Profile
@@ -8,7 +9,7 @@ from app.models.user import User
 from app.schemas.profile import SearchResultItem
 
 
-def search_members(db: Session, *, keyword: str | None = None, limit: int = 20) -> tuple[list[SearchResultItem], int]:
+def search_members(db: Session, *, keyword: str | None = None, limit: int = 20) -> Result[tuple[list[SearchResultItem], int]]:
     award_counts = (
         select(Achievement.profile_id, func.count(Achievement.id).label("award_count"))
         .where(Achievement.category == AchievementCategory.AWARD.value)
@@ -40,4 +41,4 @@ def search_members(db: Session, *, keyword: str | None = None, limit: int = 20) 
                 updated_at=profile.updated_at,
             )
         )
-    return results, total
+    return Result.success((results, total))

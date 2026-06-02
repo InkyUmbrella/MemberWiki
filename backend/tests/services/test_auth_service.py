@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.services.auth_service import login_user, refresh_tokens
-from app.services.errors import UnauthorizedError
 from app.services.security import (
     create_access_token,
     decode_access_token,
@@ -21,7 +20,9 @@ def test_register_login_persistence(db: Session) -> None:
     assert db.get(User, user.id).display_name == "Alice"
     assert db.query(RefreshToken).filter(RefreshToken.user_id == user.id).count() == 1
 
-    response = login_user(db, account="alice@example.com", password="Passw0rd!23")
+    result = login_user(db, account="alice@example.com", password="Passw0rd!23")
+    assert result.ok
+    response = result.unwrap()
     db.commit()
 
     assert response.user.id == user.id
@@ -31,8 +32,9 @@ def test_register_login_persistence(db: Session) -> None:
 def test_login_rejects_wrong_password(db: Session) -> None:
     register_member(db)
 
-    with pytest.raises(UnauthorizedError):
-        login_user(db, account="alice@example.com", password="WrongPass123")
+    result = login_user(db, account="alice@example.com", password="WrongPass123")
+    assert not result.ok
+    assert result.code == "UNAUTHORIZED"
 
 
 def test_access_token_is_jwt_with_claims(db: Session) -> None:
@@ -64,7 +66,8 @@ def test_password_upgrade_on_login(db: Session) -> None:
 
     assert needs_password_upgrade(user.password_hash)
 
-    login_user(db, account="legacy@example.com", password="OldPass123")
+    result = login_user(db, account="legacy@example.com", password="OldPass123")
+    assert result.ok
     db.commit()
 
     user = db.get(User, user.id)
@@ -75,7 +78,9 @@ def test_password_upgrade_on_login(db: Session) -> None:
 
 def test_refresh_token_rotation(db: Session) -> None:
     register_member(db, name="Bob", email="bob@example.com")
-    response = login_user(db, account="bob@example.com", password="Passw0rd!23")
+    login_result = login_user(db, account="bob@example.com", password="Passw0rd!23")
+    assert login_result.ok
+    response = login_result.unwrap()
     db.commit()
 
     old_refresh = response.refresh_token
@@ -84,7 +89,9 @@ def test_refresh_token_rotation(db: Session) -> None:
         RefreshToken.revoked_at.is_(None),
     ).count()
 
-    new_response = refresh_tokens(db, refresh_token=old_refresh)
+    refresh_result = refresh_tokens(db, refresh_token=old_refresh)
+    assert refresh_result.ok
+    new_response = refresh_result.unwrap()
     db.commit()
 
     assert new_response.access_token != response.access_token
@@ -99,11 +106,14 @@ def test_refresh_token_rotation(db: Session) -> None:
 
 def test_refresh_reuse_detected(db: Session) -> None:
     register_member(db, name="Eve", email="eve@example.com")
-    response = login_user(db, account="eve@example.com", password="Passw0rd!23")
+    login_result = login_user(db, account="eve@example.com", password="Passw0rd!23")
+    assert login_result.ok
+    response = login_result.unwrap()
     db.commit()
 
     refresh_tokens(db, refresh_token=response.refresh_token)
     db.commit()
 
-    with pytest.raises(UnauthorizedError, match="token reuse"):
-        refresh_tokens(db, refresh_token=response.refresh_token)
+    result = refresh_tokens(db, refresh_token=response.refresh_token)
+    assert not result.ok
+    assert "token reuse" in (result.error or "").lower()

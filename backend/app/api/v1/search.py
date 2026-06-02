@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.api.v1.errors import raise_for_result
 from app.db.session import get_db
 from app.schemas.common import PaginatedResponse
 from app.schemas.profile import SearchResultItem
@@ -16,5 +17,7 @@ def search(
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
 ) -> PaginatedResponse[SearchResultItem]:
-    items, total = search_members(db, keyword=keyword, limit=page_size)
+    result = search_members(db, keyword=keyword, limit=page_size)
+    raise_for_result(result)
+    items, total = result.unwrap()
     return PaginatedResponse(items=items, page=page, page_size=page_size, total=total)
