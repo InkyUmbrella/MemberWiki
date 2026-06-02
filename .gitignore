@@ -22,6 +22,7 @@ node_modules/
 .venv
 .env
 backend/data/*.db
+logs/
 
 # Agent
 graphify-out/

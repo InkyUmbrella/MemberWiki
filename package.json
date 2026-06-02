@@ -11,8 +11,11 @@
     "test": "bun run tools/test.ts test",
     "lint": "bun --cwd frontend lint; bun run tools/lint.ts",
     "typecheck": "bun --cwd frontend typecheck; bun run tools/typecheck.ts",
-    "db:reset": "bun run tools/db.ts reset",
-    "clean": "bun run tools/clean.ts",
+    "clean": "bun run tools/clean.ts all",
+    "clean:db": "bun run tools/db.ts reset",
+    "clean:logs": "bun run tools/logs.ts --clean",
+    "clean:cache": "bun run tools/clean.ts cache",
+    "logs": "bun run tools/logs.ts",
     "update": "bun run tools/update.ts",
     "help": "bun run tools/help.ts"
   },

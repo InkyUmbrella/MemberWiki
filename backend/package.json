@@ -9,6 +9,7 @@
     "db:reset": "bun run ../tools/db.ts reset",
     "db:migrate": "bun run ../tools/db.ts migrate",
     "clean": "bun run ../tools/clean.ts",
+    "logs": "bun run ../tools/logs.ts",
     "help": "bun run ../tools/help.ts"
   },
   "devDependencies": {

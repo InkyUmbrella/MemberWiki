@@ -1,9 +1,11 @@
 import json
 import logging
+import os
 import sys
 import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Generator
 
 from app.core.request_id import get_request_id
@@ -58,9 +60,25 @@ def get_logger(name: str) -> Logger:
     return Logger(name)
 
 
-def setup_logging(level: str = "INFO") -> None:
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(JSONFormatter())
+def setup_logging(level: str = "INFO", log_dir: str | None = None) -> None:
+    formatter = JSONFormatter()
     root = logging.getLogger()
     root.setLevel(getattr(logging, level.upper(), logging.INFO))
-    root.handlers = [handler]
+    root.handlers = []
+
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setFormatter(formatter)
+    root.addHandler(stdout_handler)
+
+    if log_dir is None:
+        candidate = Path(__file__).resolve().parent.parent.parent / "logs"
+        if candidate.exists():
+            log_dir = str(candidate)
+
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+        file_handler = logging.FileHandler(
+            os.path.join(log_dir, "app.jsonl"), encoding="utf-8"
+        )
+        file_handler.setFormatter(formatter)
+        root.addHandler(file_handler)
